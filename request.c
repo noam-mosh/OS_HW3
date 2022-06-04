@@ -5,6 +5,35 @@
 #include "segel.h"
 #include "request.h"
 
+void createRequest(int connfd, Thread* pool, Queue handled_req, Queue waiting_req, Policy policy, pthread_mutex_t* global_lock, pthread_cond_t* global_cond)
+{
+    int fd;
+    pthread_mutex_lock(global_lock);
+    if (handled_req->currSize + waiting_req->currSize >= waiting_req->maxSize)
+    {
+        switch (policy){
+            case BLOCK:
+                while (handled_req->currSize + waiting_req->currSize >= waiting_req->maxSize)
+                    pthread_cond_wait(global_cond, global_lock);
+                break;
+            case DT:
+                Close(connfd);
+                pthread_mutex_unlock(global_lock);
+                return;
+            case RANDOM:
+
+            case DH:
+                fd = dequeue(waiting_req);
+                //Todo: add case for when queue is empty
+                Close(fd);
+                break;
+            case INVALID:
+                break;
+        }
+    }
+
+}
+
 // requestError(      fd,    filename,        "404",    "Not found", "OS-HW3 Server could not find this file");
 void requestError(int fd, char *cause, char *errnum, char *shortmsg, char *longmsg) 
 {
