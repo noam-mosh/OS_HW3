@@ -39,14 +39,30 @@ void getargs(int* port, int* threads_num, int* queue_size, Policy* schedalg, int
         *schedalg = INVALID;
 }
 
-void worker(Thread thread)
-{
-    requestHandle(connfd);
-}
+//void worker(Thread thread)
+//{
+//    while (1)
+//    {
+//        Request r = (Request) dequeue(thread.waiting_q);
+//        enqueue(thread.handled_q, r);
+//        requestHandle(r->fd);
+//        removeQueue(thread.handled_q, r);
+//        Close(r->fd);
+//        free(r);
+//    }
+//}
 
 void* start_routine(void* thread) {
-    worker((Thread) thread);
-    return NULL;
+    Thread tmp = (Thread)thread;
+    while (1)
+    {
+        Request r = (Request) dequeue(tmp->waiting_q);
+        enqueue(tmp->handled_q, r);
+        requestHandle(r->fd);
+        removeQueue(tmp->handled_q, r);
+        Close(r->fd);
+        free(r);
+    }
 }
 
 int main(int argc, char *argv[])
@@ -66,8 +82,8 @@ int main(int argc, char *argv[])
     pthread_cond_t handled_cond_dec = PTHREAD_COND_INITIALIZER;
     pthread_cond_t global_cond = PTHREAD_COND_INITIALIZER;
 
-    Queue handled_req = createQueue(threads_num, 0, &handled_lock, &handled_cond_enc, &handled_cond_dec);
-    Queue waiting_req = createQueue(queue_size, 0, &waiting_lock, &waiting_cond_enc, &waiting_cond_dec);
+    Queue handled_q = createQueue(threads_num, 0, &handled_lock, &handled_cond_enc, &handled_cond_dec);
+    Queue waiting_q = createQueue(queue_size, 0, &waiting_lock, &waiting_cond_enc, &waiting_cond_dec);
     // 
     // HW3: Create some threads...
     //
@@ -75,7 +91,7 @@ int main(int argc, char *argv[])
     if (!threads_pull)
         return NULL;
     for (int i = 0; i < threads_num; ++i) {
-        threads_pull[i] = createThread(&(threads_pull[i].thread), start_routine, NULL);
+        threads_pull[i] = createThread(threads_pull[i]->thread, handled_q, waiting_q, start_routine, NULL);
     }
 
     listenfd = Open_listenfd(port);
@@ -88,13 +104,16 @@ int main(int argc, char *argv[])
         // Save the relevant info in a buffer and have one of the worker threads
         // do the work.
         //
-        createRequest(connfd, threads_pull, handled_req, waiting_req, schedalg, &global_lock, &global_cond);
+        struct timeval arrival;
+        gettimeofday(&arrival, NULL);
+        Request r = CreateRequest(connfd, arrival, handled_q, waiting_q, schedalg);
+        AddRequest(r, threads_pull, &global_lock, &global_cond);
 //        requestHandle(connfd);
 
 //        Close(connfd);
     }
-    destroyQueue(handled_req);
-    destroyQueue(waiting_req);
+    destroyQueue(handled_q);
+    destroyQueue(waiting_q);
 }
 
 

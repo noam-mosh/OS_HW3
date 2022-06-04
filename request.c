@@ -5,23 +5,51 @@
 #include "segel.h"
 #include "request.h"
 
-void createRequest(int connfd, Thread* pool, Queue handled_req, Queue waiting_req, Policy policy, pthread_mutex_t* global_lock, pthread_cond_t* global_cond)
+Request CreateRequest(int fd, struct timeval arrive_time, Queue handled_q, Queue waiting_q, Policy policy)
 {
-    int fd;
+    Request req = (Request)malloc(sizeof(Request));
+    if (!req)
+        return NULL;
+    req->fd = fd;
+    req->arrive_time = arrive_time;
+    req->handled_q = handled_q;
+    req->waiting_q = waiting_q;
+    req->policy = policy;
+    return req;
+}
+
+void AddRequest(Request req, Thread* pool, pthread_mutex_t* global_lock, pthread_cond_t* global_cond)
+{
+    int fd, num_of_req_to_remove, empty = 1;
+    Queue handled_req = req->handled_q;
+    Queue waiting_req = req->waiting_q;
     pthread_mutex_lock(global_lock);
     if (handled_req->currSize + waiting_req->currSize >= waiting_req->maxSize)
     {
-        switch (policy){
+        switch (req->policy){
             case BLOCK:
                 while (handled_req->currSize + waiting_req->currSize >= waiting_req->maxSize)
                     pthread_cond_wait(global_cond, global_lock);
                 break;
             case DT:
-                Close(connfd);
+                Close(req->fd);
                 pthread_mutex_unlock(global_lock);
                 return;
             case RANDOM:
-
+                num_of_req_to_remove = (int)((double)(waiting_req->currSize) * 0.3);
+                for(int i = 0 ; i < num_of_req_to_remove ; i++)
+                {
+                    empty = 0;
+                    fd = dequeue_index(waiting_req, abs(rand())%(waiting_req->currSize));
+                    Close(fd);
+                }
+                if (empty)
+                {
+                    Close(req->fd);
+                    pthread_mutex_unlock(global_lock);
+                    return;
+                }
+                break;
             case DH:
                 fd = dequeue(waiting_req);
                 //Todo: add case for when queue is empty
@@ -31,7 +59,9 @@ void createRequest(int connfd, Thread* pool, Queue handled_req, Queue waiting_re
                 break;
         }
     }
-
+    enqueue(waiting_req, &req->fd);
+    pthread_cond_signal(global_cond);
+    pthread_mutex_unlock(global_lock);
 }
 
 // requestError(      fd,    filename,        "404",    "Not found", "OS-HW3 Server could not find this file");
