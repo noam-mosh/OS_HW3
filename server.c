@@ -58,7 +58,7 @@ void* start_routine(void* thread) {
     {
         Request r = (Request) dequeue(tmp->waiting_q);
         enqueue(tmp->handled_q, r);
-        requestHandle(r->fd);
+        requestHandle(r->fd, r, tmp);
         removeQueue(tmp->handled_q, r);
         Close(r->fd);
         free(r);
@@ -91,7 +91,7 @@ int main(int argc, char *argv[])
     if (!threads_pull)
         return NULL;
     for (int i = 0; i < threads_num; ++i) {
-        threads_pull[i] = createThread(threads_pull[i]->thread, handled_q, waiting_q, start_routine, NULL);
+        threads_pull[i] = createThread(i, threads_pull[i]->thread, handled_q, waiting_q, start_routine, NULL);
     }
 
     listenfd = Open_listenfd(port);
