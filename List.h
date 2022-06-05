@@ -21,15 +21,11 @@ typedef struct List_t
 
 List createList();
 void pushNode(List list, void* data);
-void popNode(List list);
+node popNode(List list);
 void destroyList(List list);
+node removeNodeByIndex(List list, int index);
+node removeNodeByData(List list, void* data);
 
-//typedef struct node_t *node;
 
-//typedef struct List_t *List;
-
-//struct node createNode();
-
-//typedef struct Node *node; //Define node as pointer of data type struct LinkedList
 
 #endif //LIST_C_LIST_H

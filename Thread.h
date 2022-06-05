@@ -7,11 +7,14 @@ typedef struct Thread_t{
     pthread_t* thread;
     Queue handled_q;
     Queue waiting_q;
-//    int thread_id;
-    int static_request;
-    int dynamic_request;
+    int thread_id;
+    int static_request_count;
+    int dynamic_request_count;
+    int total_request_count
     } *Thread;
 
-Thread createThread(pthread_t* thread, Queue handled_q, Queue waiting_q, void* (*work)(void*), void* arg);
-
+Thread createThread(int thread_id, pthread_t* thread, Queue handled_q, Queue waiting_q, void* (*work)(void*), void* arg);
+void increaseStaticCount (Thread thread);
+void increaseDynamicCount (Thread thread);
+void increaseTotalCount (Thread thread);
 #endif //OS_HW3_THREAD_H

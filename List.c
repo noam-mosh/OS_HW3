@@ -11,14 +11,6 @@ List createList()
     return new_list;
 }
 
-//    node tmp; // declare a node
-//    tmp = (node) malloc(sizeof(node));
-//    tmp->next = NULL;// make next point to NULL
-//    tmp->prev = NULL;
-//    new_list->tail = tmp;
-//    new_list->head = tmp;
-//    return new_list;//return the new node
-//}
 
 void pushNode(List list, void* data)
 {
@@ -34,10 +26,11 @@ void pushNode(List list, void* data)
     list->tail = tmp;
 }
 
-void popNode(List list)
+node popNode(List list)
 {
-    if (list->tail == NULL)
-        return;
+    if (list->head == NULL)
+        return NULL;
+    node tmp = list->head;
     if (list->tail == list->head)
     {
         free(list->head);
@@ -45,10 +38,39 @@ void popNode(List list)
         list->head = NULL;
         list->tail = NULL;
     }
-    node tmp = list->tail;
-    list->tail = tmp->prev;
-    list->tail->next = NULL;
-    free(tmp);
+    list->head = tmp->next;
+    list->head->prev = NULL;
+    return tmp;
+}
+
+node removeNodeByIndex(List list, int index)
+{
+    int i=0;
+    node curr = list->head;
+    while (i < index && curr != NULL)
+    {
+        curr = curr->next;
+        i++;
+    }
+    if (i == index)
+    {
+        curr->prev->next = curr->next;
+        curr->next->prev = curr->prev;
+        return curr;
+    }
+    return NULL;
+}
+
+node removeNodeByData(List list, void* data)
+{
+    node curr = list->head;
+    while (curr != NULL && curr->data !=data)
+        curr = curr->next;
+    if (curr == NULL)
+        return NULL;
+    curr->prev->next = curr->next;
+    curr->next->prev = curr->prev;
+    return curr;
 }
 
 void destroyList(List list)
