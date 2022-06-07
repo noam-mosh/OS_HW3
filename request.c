@@ -88,7 +88,7 @@ void AddRequest(Request req, Thread* pool, pthread_mutex_t* global_lock, pthread
 // requestError(      fd,    filename,        "404",    "Not found", "OS-HW3 Server could not find this file");
 void requestError(int fd, char *cause, char *errnum, char *shortmsg, char *longmsg, Request request, Thread thread)
 {
-   char buf[MAXLINE], body[MAXBUF];
+    char buf[MAXLINE], body[MAXBUF];
 
     updateDispatchTime(request);
     increaseTotalCount(thread);
@@ -301,5 +301,3 @@ void requestHandle(int fd, Request request, Thread thread)
         requestServeDynamic(fd, filename, cgiargs, request, thread);
     }
 }
-
-

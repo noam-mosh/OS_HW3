@@ -11,14 +11,6 @@ List createList()
     return new_list;
 }
 
-//    node tmp; // declare a node
-//    tmp = (node) malloc(sizeof(node));
-//    tmp->next = NULL;// make next point to NULL
-//    tmp->prev = NULL;
-//    new_list->tail = tmp;
-//    new_list->head = tmp;
-//    return new_list;//return the new node
-//}
 
 void pushNode(List list, void* data)
 {
@@ -91,3 +83,4 @@ void destroyList(List list)
         curr = next;
     }
 }
+

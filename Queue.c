@@ -93,5 +93,3 @@ size_t getQueueTotalSize(Queue q)
 {
     return q->totalSize;
 }
-
-
