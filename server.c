@@ -116,8 +116,3 @@ int main(int argc, char *argv[])
     destroyQueue(waiting_q);
 }
 
-
-    
-
-
- 

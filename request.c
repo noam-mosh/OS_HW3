@@ -301,5 +301,3 @@ void requestHandle(int fd, Request request, Thread thread)
         requestServeDynamic(fd, filename, cgiargs, request, thread);
     }
 }
-
-

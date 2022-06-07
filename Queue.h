@@ -28,5 +28,4 @@ void* dequeue_index(Queue q, int index);
 size_t getQueueSize(Queue q);
 size_t getQueueTotalSize(Queue q);
 
-
 #endif //WEBSERVER_FILES_QUEUE_H
