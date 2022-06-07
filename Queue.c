@@ -53,6 +53,37 @@ errorType dequeue(Queue q) {
     pthread_mutex_unlock(q->lock);
 }
 
+errorType removeQueue(Queue q, void* data)
+{
+    //Todo: add case for when queue is empty
+    if (!q)
+        return NULL_ARGUMENT;
+    pthread_mutex_lock(q->lock);
+    while (q->currSize == 0) {
+        pthread_cond_wait(q->dequeue_allowed, q->lock);
+    }
+    removeNodeByData(q->list, data);
+    q->currSize--;
+    pthread_cond_signal(q->enqueue_allowed);
+    pthread_mutex_unlock(q->lock);
+}
+
+void* dequeue_index(Queue q, int index)
+{
+    //Todo: add case for when queue is empty
+    if (!q)
+        return NULL_ARGUMENT;
+    pthread_mutex_lock(q->lock);
+    while (q->currSize == 0) {
+        pthread_cond_wait(q->dequeue_allowed, q->lock);
+    }
+    node ret = removeNodeByIndex(q->list, index);
+    q->currSize--;
+    pthread_cond_signal(q->enqueue_allowed);
+    pthread_mutex_unlock(q->lock);
+    return ret->data;
+}
+
 size_t getQueueSize(Queue q)
 {
     return q->currSize;

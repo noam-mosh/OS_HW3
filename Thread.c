@@ -12,7 +12,7 @@ Thread createThread(int thread_id, pthread_t* thread, Queue handled_q, Queue wai
     t->static_request_count = 0;
     t->dynamic_request_count = 0;
     t->total_request_count = 0;
-    if(pthread_create(thread, NULL ,work, &arg))
+    if(pthread_create(thread, NULL ,work, &arg)) //TODO: &arg = thread?
     {
         return NULL;
     }
