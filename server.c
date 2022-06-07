@@ -16,8 +16,8 @@
 void getargs(int* port, int* threads_num, int* queue_size, Policy* schedalg, int argc, char *argv[])
 {
     if (argc < 2) {
-	fprintf(stderr, "Usage: %s <port>\n", argv[0]);
-	exit(1);
+        fprintf(stderr, "Usage: %s <port>\n", argv[0]);
+        exit(1);
     }
     *port = atoi(argv[1]);
     *threads_num = atoi(argv[2]);
@@ -91,7 +91,7 @@ int main(int argc, char *argv[])
     if (!threads_pull)
         return NULL;
     for (int i = 0; i < threads_num; ++i) {
-        threads_pull[i] = createThread(i, threads_pull[i]->thread, handled_q, waiting_q, start_routine, NULL);
+        threads_pull[i] = createThread(i, threads_pull[i]->thread, handled_q, waiting_q, start_routine, threads_pull[i]->thread);
     }
 
     listenfd = Open_listenfd(port);

@@ -5,9 +5,9 @@
 #include "List.h"
 
 typedef enum {OUT_OF_MEMORY,
-              NULL_ARGUMENT,
-              QUEUE_EMPTY,
-              NOT_FOUND} errorType;
+    NULL_ARGUMENT,
+    QUEUE_EMPTY,
+    NOT_FOUND} errorType;
 
 typedef struct Queue_t{
     List list;
@@ -23,6 +23,8 @@ Queue createQueue(size_t maxSize, size_t totalSize, pthread_mutex_t* lock, pthre
 void destroyQueue(Queue q);
 errorType enqueue(Queue q, void* data);
 errorType dequeue(Queue q);
+errorType removeQueue(Queue q, void* data);
+void* dequeue_index(Queue q, int index);
 size_t getQueueSize(Queue q);
 size_t getQueueTotalSize(Queue q);
 

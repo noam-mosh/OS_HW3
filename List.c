@@ -61,7 +61,7 @@ node removeNodeByIndex(List list, int index)
     return NULL;
 }
 
-node removeNodeByData(List list, void* data)
+node removeNodeByData(List list, void* data)    //TODO: void?
 {
     node curr = list->head;
     while (curr != NULL && curr->data !=data)
