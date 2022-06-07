@@ -16,8 +16,8 @@
 void getargs(int* port, int* threads_num, int* queue_size, Policy* schedalg, int argc, char *argv[])
 {
     if (argc < 2) {
-	fprintf(stderr, "Usage: %s <port>\n", argv[0]);
-	exit(1);
+        fprintf(stderr, "Usage: %s <port>\n", argv[0]);
+        exit(1);
     }
     *port = atoi(argv[1]);
     *threads_num = atoi(argv[2]);

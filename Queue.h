@@ -5,9 +5,9 @@
 #include "List.h"
 
 typedef enum {OUT_OF_MEMORY,
-              NULL_ARGUMENT,
-              QUEUE_EMPTY,
-              NOT_FOUND} errorType;
+    NULL_ARGUMENT,
+    QUEUE_EMPTY,
+    NOT_FOUND} errorType;
 
 typedef struct Queue_t{
     List list;
