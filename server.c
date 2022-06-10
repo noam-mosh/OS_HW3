@@ -39,18 +39,6 @@ void getargs(int* port, int* threads_num, int* queue_size, Policy* schedalg, int
         *schedalg = INVALID;
 }
 
-//void worker(Thread thread)
-//{
-//    while (1)
-//    {
-//        Request r = (Request) dequeue(thread.waiting_q);
-//        enqueue(thread.handled_q, r);
-//        requestHandle(r->fd);
-//        removeQueue(thread.handled_q, r);
-//        Close(r->fd);
-//        free(r);
-//    }
-//}
 
 void* start_routine(void* thread) {
     Thread t = (Thread)thread;
@@ -66,7 +54,8 @@ void* start_routine(void* thread) {
         pthread_cond_signal(t->global_cond);
         pthread_mutex_unlock(t->global_lock);
         Close(r->fd);
-        free(r);
+        if (r)
+            free(r);
     }
 }
 
