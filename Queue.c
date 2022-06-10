@@ -2,11 +2,12 @@
 
 
 Queue createQueue(size_t maxSize, pthread_mutex_t* lock, pthread_cond_t* cond_enc, pthread_cond_t* cond_dec) {
-    Queue q = NULL;
+    Queue q;
     q = (Queue)malloc(sizeof(*q));
-    if (!q)
-        return NULL;
+    if (q==NULL)
+        return q;
     q->list = createList();
+    q->currSize = 0;
     q->maxSize = maxSize;
     q->lock = lock;
     q->enqueue_allowed = cond_enc;
@@ -62,7 +63,7 @@ void removeQueue(Queue q, void* data)
     while (q->currSize == 0) {
         pthread_cond_wait(q->dequeue_allowed, q->lock);
     }
-    node delete = removeNodeByData(q->list, data);
+    removeNodeByData(q->list, data);
     q->currSize--;
     pthread_cond_signal(q->enqueue_allowed);
     pthread_mutex_unlock(q->lock);

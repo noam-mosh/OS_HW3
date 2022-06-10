@@ -1,8 +1,8 @@
 #include "Thread.h"
-
-Thread createThread(int thread_id, Queue handled_q, Queue waiting_q, pthread_mutex_t* global_lock, pthread_cond_t* global_cond, int* totalSize)
+#include <pthread.h>
+Thread createThread(unsigned int thread_id, Queue handled_q, Queue waiting_q, pthread_mutex_t* global_lock, pthread_cond_t* global_cond, int* totalSize)
 {
-    Thread t = (Thread)malloc(sizeof(Thread));
+    Thread t = (Thread)malloc(sizeof(*t));
     if (!t)
         return NULL;
     t->handled_q = handled_q;
@@ -18,7 +18,8 @@ Thread createThread(int thread_id, Queue handled_q, Queue waiting_q, pthread_mut
 }
 
 int activateTread(Thread thread, void* (*work)(void* arg)) {
-    return (pthread_create(&(thread->thread), NULL, work, thread));
+    int res = pthread_create(&(thread->thread), NULL, work, thread);
+    return (res);
 }
 
 void increaseStaticCount (Thread thread)

@@ -41,7 +41,8 @@ void getargs(int* port, int* threads_num, int* queue_size, Policy* schedalg, int
 
 
 void* start_routine(void* thread) {
-    Thread t = (Thread)thread;
+    Thread t;
+    t = (Thread)thread;
     while (1)
     {
         Request r = (Request) dequeue(t->waiting_q);
@@ -54,8 +55,7 @@ void* start_routine(void* thread) {
         pthread_cond_signal(t->global_cond);
         pthread_mutex_unlock(t->global_lock);
         Close(r->fd);
-        if (r)
-            free(r);
+        free(r);
     }
 }
 
@@ -76,6 +76,9 @@ int main(int argc, char *argv[])
     pthread_cond_t handled_cond_dec = PTHREAD_COND_INITIALIZER;
     pthread_cond_t global_cond = PTHREAD_COND_INITIALIZER;
 
+    pthread_mutex_init(&global_lock, NULL);
+
+
     Queue handled_q = createQueue(threads_num, &handled_lock, &handled_cond_enc, &handled_cond_dec);
     Queue waiting_q = createQueue(queue_size, &waiting_lock, &waiting_cond_enc, &waiting_cond_dec);
     // 
@@ -84,7 +87,7 @@ int main(int argc, char *argv[])
     Thread* threads_pool = (Thread*) malloc(threads_num * sizeof(Thread));
 //    if (!threads_pull)
 //        return NULL;
-    int i;
+    unsigned int i;
     for (i = 0; i < threads_num; ++i) {
         threads_pool[i] = createThread(i, handled_q, waiting_q, &global_lock, &global_cond, &totalSize);
         while(activateTread(threads_pool[i], start_routine));
@@ -108,7 +111,7 @@ int main(int argc, char *argv[])
 
 //        Close(connfd);
     }
-    destroyQueue(handled_q);
-    destroyQueue(waiting_q);
+//    destroyQueue(handled_q);
+//    destroyQueue(waiting_q);
 }
 
