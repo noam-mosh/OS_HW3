@@ -63,6 +63,16 @@ node removeNodeByIndex(List list, int index)
     }
     if (i == index)
     {
+        if (curr == list->head)
+        {
+            list->head = curr->next;
+            return;
+        }
+        if (curr == list->tail)
+        {
+            list->tail = curr->prev;
+            return;
+        }
         curr->prev->next = curr->next;
         curr->next->prev = curr->prev;
         return curr;
