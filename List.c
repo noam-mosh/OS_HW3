@@ -31,7 +31,7 @@ void pushNode(List list, void* data)
         tmp->next= NULL;
         tmp->prev = NULL;
         tmp->data = data;
-        ist->head = tmp;
+        list->head = tmp;
         list->tail = tmp;
     }
 }

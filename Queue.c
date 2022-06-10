@@ -25,9 +25,9 @@ void destroyQueue(Queue q){
     free(q);
 }
 
-errorType enqueue(Queue q, void* data) {
+void enqueue(Queue q, void* data) {
     if (!q || !data)
-        return NULL_ARGUMENT;
+        return;
     pthread_mutex_lock(q->lock);
     while (q->currSize >= q->maxSize) {
         pthread_cond_wait(q->enqueue_allowed, q->lock);
@@ -36,38 +36,36 @@ errorType enqueue(Queue q, void* data) {
     q->currSize++;
     pthread_cond_signal(q->dequeue_allowed);
     pthread_mutex_unlock(q->lock);
-    return SUCCESS;
 }
 
-errorType dequeue(Queue q) {
+void* dequeue(Queue q) {
     //Todo: add case for when queue is empty
     if (!q)
-        return NULL_ARGUMENT;
+        return NULL;
     pthread_mutex_lock(q->lock);
     while (q->currSize == 0) {
         pthread_cond_wait(q->dequeue_allowed, q->lock);
     }
-    popNode(q->list);
+    node delete = popNode(q->list);
     q->currSize--;
     pthread_cond_signal(q->enqueue_allowed);
     pthread_mutex_unlock(q->lock);
-    return SUCCESS;
+    return delete->data;
 }
 
-errorType removeQueue(Queue q, void* data)
+void removeQueue(Queue q, void* data)
 {
     //Todo: add case for when queue is empty
     if (!q)
-        return NULL_ARGUMENT;
+        return;
     pthread_mutex_lock(q->lock);
     while (q->currSize == 0) {
         pthread_cond_wait(q->dequeue_allowed, q->lock);
     }
-    removeNodeByData(q->list, data);
+    node delete = removeNodeByData(q->list, data);
     q->currSize--;
     pthread_cond_signal(q->enqueue_allowed);
     pthread_mutex_unlock(q->lock);
-    return SUCCESS;
 }
 
 void* dequeue_index(Queue q, int index)

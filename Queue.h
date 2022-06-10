@@ -21,9 +21,9 @@ typedef struct Queue_t{
 
 Queue createQueue(size_t maxSize, pthread_mutex_t* lock, pthread_cond_t* cond_enc, pthread_cond_t* cond_dec);
 void destroyQueue(Queue q);
-errorType enqueue(Queue q, void* data);
-errorType dequeue(Queue q);
-errorType removeQueue(Queue q, void* data);
+void enqueue(Queue q, void* data);
+void* dequeue(Queue q);
+void removeQueue(Queue q, void* data);
 void* dequeue_index(Queue q, int index);
 
 #endif //WEBSERVER_FILES_QUEUE_H
