@@ -39,14 +39,14 @@ time_t getMicroSec(Request request, int time_type)
     return request->dispatch_time.tv_usec;
 }
 
-void AddRequest(Request req, pthread_mutex_t* global_lock, pthread_cond_t* global_cond)
+void AddRequest(Request req, pthread_mutex_t* global_lock, pthread_cond_t* global_cond, int* totalSize)
 {
     int num_of_req_to_remove, empty = 1;
     Request r;
     Queue handled_req = req->handled_q;
     Queue waiting_req = req->waiting_q;
     pthread_mutex_lock(global_lock);
-    if (handled_req->currSize + waiting_req->currSize >= waiting_req->maxSize)
+    if (*totalSize >= waiting_req->maxSize)
     {
         switch (req->policy){
             case BLOCK:
@@ -67,6 +67,7 @@ void AddRequest(Request req, pthread_mutex_t* global_lock, pthread_cond_t* globa
                     Close(r->fd);
                     free(r);
                 }
+                *totalSize = *totalSize -  num_of_req_to_remove;
                 if (empty)
                 {
                     Close(req->fd);
@@ -79,12 +80,14 @@ void AddRequest(Request req, pthread_mutex_t* global_lock, pthread_cond_t* globa
                 //Todo: add case for when queue is empty
                 Close(r->fd);
                 free(r);
+                *totalSize = *totalSize -1;
                 break;
             case INVALID:
                 break;
         }
     }
     enqueue(waiting_req, req);
+    *totalSize = *totalSize + 1;
     pthread_cond_signal(global_cond);
     pthread_mutex_unlock(global_lock);
 }

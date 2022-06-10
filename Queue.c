@@ -1,14 +1,13 @@
 #include "Queue.h"
 
 
-Queue createQueue(size_t maxSize, size_t totalSize, pthread_mutex_t* lock, pthread_cond_t* cond_enc, pthread_cond_t* cond_dec) {
+Queue createQueue(size_t maxSize, pthread_mutex_t* lock, pthread_cond_t* cond_enc, pthread_cond_t* cond_dec) {
     Queue q = NULL;
     q = (Queue)malloc(sizeof(*q));
     if (!q)
         return NULL;
     q->list = createList();
     q->maxSize = maxSize;
-    q->totalSize = totalSize;
     q->lock = lock;
     q->enqueue_allowed = cond_enc;
     q->dequeue_allowed = cond_dec;
@@ -30,7 +29,7 @@ errorType enqueue(Queue q, void* data) {
     if (!q || !data)
         return NULL_ARGUMENT;
     pthread_mutex_lock(q->lock);
-    while (q->currSize == q->totalSize) {
+    while (q->currSize >= q->maxSize) {
         pthread_cond_wait(q->enqueue_allowed, q->lock);
     }
     pushNode(q->list, data);
@@ -85,14 +84,4 @@ void* dequeue_index(Queue q, int index)
     pthread_cond_signal(q->enqueue_allowed);
     pthread_mutex_unlock(q->lock);
     return ret->data;
-}
-
-size_t getQueueSize(Queue q)
-{
-    return q->currSize;
-}
-
-size_t getQueueTotalSize(Queue q)
-{
-    return q->totalSize;
 }
