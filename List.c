@@ -14,16 +14,26 @@ List createList()
 
 void pushNode(List list, void* data)
 {
-    node last = list->tail;
-    node tmp = (node) malloc(sizeof(node));
-    last->next = tmp;
-    tmp->next= NULL;
-    tmp->prev = last;
-    tmp->data = data;
+    if (list->tail != NULL)
+    {
+        node last = list->tail;
+        node tmp = (node) malloc(sizeof(node));
+        last->next = tmp;
+        tmp->next= NULL;
+        tmp->prev = last;
+        tmp->data = data;
+        list->tail = tmp;
 
-    if (list->head == NULL)
-        list->head = tmp;
-    list->tail = tmp;
+    }
+    else
+    {
+        node tmp = (node) malloc(sizeof(node));
+        tmp->next= NULL;
+        tmp->prev = NULL;
+        tmp->data = data;
+        ist->head = tmp;
+        list->tail = tmp;
+    }
 }
 
 node popNode(List list)
@@ -37,6 +47,7 @@ node popNode(List list)
         free(list->tail);
         list->head = NULL;
         list->tail = NULL;
+        return tmp;
     }
     list->head = tmp->next;
     list->head->prev = NULL;
