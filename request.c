@@ -65,7 +65,7 @@ void AddRequest(Request req, pthread_mutex_t* global_lock, pthread_cond_t* globa
                     empty = 0;
                     r = (Request)dequeue_index(waiting_req, abs(rand())%(waiting_req->currSize));
                     Close(r->fd);
-//                    free(r);
+                    free(r);
                 }
                 *totalSize = *totalSize -  num_of_req_to_remove;
                 if (empty)
@@ -79,7 +79,7 @@ void AddRequest(Request req, pthread_mutex_t* global_lock, pthread_cond_t* globa
                 r = (Request)dequeue(waiting_req);
                 //Todo: add case for when queue is empty
                 Close(r->fd);
-//                free(r);
+                free(r);
                 *totalSize = *totalSize -1;
                 break;
             case INVALID:

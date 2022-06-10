@@ -66,12 +66,12 @@ node removeNodeByIndex(List list, int index)
         if (curr == list->head)
         {
             list->head = curr->next;
-            return;
+            return curr;
         }
         if (curr == list->tail)
         {
             list->tail = curr->prev;
-            return;
+            return curr;
         }
         curr->prev->next = curr->next;
         curr->next->prev = curr->prev;
