@@ -7,7 +7,8 @@
 typedef enum {OUT_OF_MEMORY,
     NULL_ARGUMENT,
     QUEUE_EMPTY,
-    NOT_FOUND} errorType;
+    NOT_FOUND,
+    SUCCESS} errorType;
 
 typedef struct Queue_t{
     List list;

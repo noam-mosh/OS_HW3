@@ -87,11 +87,13 @@ int main(int argc, char *argv[])
     // 
     // HW3: Create some threads...
     //
-    Thread* threads_pull = (Thread*) malloc(threads_num * sizeof(Thread));
-    if (!threads_pull)
-        return NULL;
-    for (int i = 0; i < threads_num; ++i) {
-        threads_pull[i] = createThread(i, threads_pull[i]->thread, handled_q, waiting_q, start_routine, threads_pull[i]->thread);
+    Thread* threads_pool = (Thread*) malloc(threads_num * sizeof(Thread));
+//    if (!threads_pull)
+//        return NULL;
+    int i;
+    for (i = 0; i < threads_num; ++i) {
+        threads_pool[i] = createThread(i, handled_q, waiting_q);
+        while(activateTread(threads_pool[i], start_routine));
     }
 
     listenfd = Open_listenfd(port);
@@ -107,7 +109,7 @@ int main(int argc, char *argv[])
         struct timeval arrival;
         gettimeofday(&arrival, NULL);
         Request r = CreateRequest(connfd, arrival, handled_q, waiting_q, schedalg);
-        AddRequest(r, threads_pull, &global_lock, &global_cond);
+        AddRequest(r, &global_lock, &global_cond);
 //        requestHandle(connfd);
 
 //        Close(connfd);

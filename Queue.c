@@ -37,6 +37,7 @@ errorType enqueue(Queue q, void* data) {
     q->currSize++;
     pthread_cond_signal(q->dequeue_allowed);
     pthread_mutex_unlock(q->lock);
+    return SUCCESS;
 }
 
 errorType dequeue(Queue q) {
@@ -51,6 +52,7 @@ errorType dequeue(Queue q) {
     q->currSize--;
     pthread_cond_signal(q->enqueue_allowed);
     pthread_mutex_unlock(q->lock);
+    return SUCCESS;
 }
 
 errorType removeQueue(Queue q, void* data)
@@ -66,13 +68,14 @@ errorType removeQueue(Queue q, void* data)
     q->currSize--;
     pthread_cond_signal(q->enqueue_allowed);
     pthread_mutex_unlock(q->lock);
+    return SUCCESS;
 }
 
 void* dequeue_index(Queue q, int index)
 {
     //Todo: add case for when queue is empty
     if (!q)
-        return NULL_ARGUMENT;
+        return (void *) NULL_ARGUMENT;
     pthread_mutex_lock(q->lock);
     while (q->currSize == 0) {
         pthread_cond_wait(q->dequeue_allowed, q->lock);

@@ -4,7 +4,7 @@
 #include "Queue.h"
 
 typedef struct Thread_t{
-    pthread_t* thread;
+    pthread_t thread;
     Queue handled_q;
     Queue waiting_q;
     int thread_id;
@@ -13,7 +13,8 @@ typedef struct Thread_t{
     int total_request_count;
     } *Thread;
 
-Thread createThread(int thread_id, pthread_t* thread, Queue handled_q, Queue waiting_q, void* (*work)(void*), void* arg);
+Thread createThread(int thread_id, Queue handled_q, Queue waiting_q);
+int activateTread(Thread thread, void* (*work)(void* arg));
 void increaseStaticCount (Thread thread);
 void increaseDynamicCount (Thread thread);
 void increaseTotalCount (Thread thread);

@@ -1,22 +1,21 @@
 #include "Thread.h"
 
-Thread createThread(int thread_id, pthread_t* thread, Queue handled_q, Queue waiting_q, void* (*work)(void*), void* arg)
+Thread createThread(int thread_id, Queue handled_q, Queue waiting_q)
 {
     Thread t = (Thread)malloc(sizeof(Thread));
     if (!t)
         return NULL;
-    t->thread = thread;
     t->handled_q = handled_q;
     t->waiting_q = waiting_q;
     t->thread_id = thread_id;
     t->static_request_count = 0;
     t->dynamic_request_count = 0;
     t->total_request_count = 0;
-    if(pthread_create(thread, NULL ,work, &arg)) //TODO: &arg = thread??
-    {
-        return NULL;
-    }
     return t;
+}
+
+int activateTread(Thread thread, void* (*work)(void* arg)) {
+    return (pthread_create(&(thread->thread), NULL, work, thread));
 }
 
 void increaseStaticCount (Thread thread)
