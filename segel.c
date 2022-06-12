@@ -5,6 +5,14 @@
  **************************/
 /* $begin errorfuns */
 /* $begin unixerror */
+int my_ceil(double num) {
+    int inum = (int)num;
+    if (num == (float)inum) {
+        return inum;
+    }
+    return inum + 1;
+}
+
 void unix_error(char *msg) /* unix-style error */
 {
     fprintf(stderr, "%s: %s\n", msg, strerror(errno));
@@ -564,3 +572,5 @@ int Open_listenfd(int port)
         unix_error("Open_listenfd error");
     return rc;
 }
+
+

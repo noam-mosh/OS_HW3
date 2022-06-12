@@ -23,7 +23,6 @@
 #include <netdb.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-#include "request.h"
 
 
 /* Default file permissions are DEF_MODE & ~DEF_UMASK */
@@ -56,6 +55,8 @@ extern char **environ; /* defined by libc */
 #define MAXLINE  8192  /* max text line length */
 #define MAXBUF   8192  /* max I/O buffer size */
 #define LISTENQ  1024  /* second argument to listen() */
+
+int my_ceil(double num);
 
 /* Our own error-handling functions */
 void unix_error(char *msg);

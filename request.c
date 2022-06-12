@@ -61,13 +61,13 @@ void AddRequest(Request req, pthread_mutex_t* global_lock, pthread_cond_t* globa
                 num_of_req_to_remove = (double)(*totalSize) * 0.3;
                 num_of_req_to_remove = (double)(waiting_req->currSize) < num_of_req_to_remove ? (double)(waiting_req->currSize) : num_of_req_to_remove;
                 int i;
-                for(i = 0 ; i < ceil(num_of_req_to_remove) ; i++)
+                for(i = 0 ; i < my_ceil(num_of_req_to_remove) ; i++)
                 {
                     r = (Request)dequeue_index(waiting_req, abs(rand())%(*totalSize));
                     Close(r->fd);
                     free(r);
                 }
-                *totalSize = *totalSize - (int)ceil(num_of_req_to_remove);
+                *totalSize = *totalSize - (int)my_ceil(num_of_req_to_remove);
                 break;
             case DH:
                 r = (Request)dequeue(waiting_req);
