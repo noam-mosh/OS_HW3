@@ -21,7 +21,7 @@ typedef struct Request_t{
 } *Request;
 
 Request CreateRequest(int fd, struct timeval arrive_time, Queue handled_q, Queue waiting_q, Policy policy);
-void AddRequest(Request req, Thread* pool,  pthread_mutex_t* global_lock, pthread_cond_t* global_cond);
+void AddRequest(Request req, pthread_mutex_t* global_lock, pthread_cond_t* global_cond, int* totalSize);
 void requestHandle(int fd, Request request, Thread thread);
 
 void updateDispatchTime(Request request);

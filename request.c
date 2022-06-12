@@ -7,7 +7,7 @@
 
 Request CreateRequest(int fd, struct timeval arrive_time, Queue handled_q, Queue waiting_q, Policy policy)
 {
-    Request req = (Request)malloc(sizeof(Request));
+    Request req = (Request)malloc(sizeof(*req));
     if (!req)
         return NULL;
     req->fd = fd;
@@ -39,13 +39,14 @@ time_t getMicroSec(Request request, int time_type)
     return request->dispatch_time.tv_usec;
 }
 
-void AddRequest(Request req, Thread* pool, pthread_mutex_t* global_lock, pthread_cond_t* global_cond)
+void AddRequest(Request req, pthread_mutex_t* global_lock, pthread_cond_t* global_cond, int* totalSize)
 {
-    int fd, num_of_req_to_remove, empty = 1;
+    int num_of_req_to_remove, empty = 1;
+    Request r;
     Queue handled_req = req->handled_q;
     Queue waiting_req = req->waiting_q;
     pthread_mutex_lock(global_lock);
-    if (handled_req->currSize + waiting_req->currSize >= waiting_req->maxSize)
+    if (*totalSize >= waiting_req->maxSize)
     {
         switch (req->policy){
             case BLOCK:
@@ -58,12 +59,15 @@ void AddRequest(Request req, Thread* pool, pthread_mutex_t* global_lock, pthread
                 return;
             case RANDOM:
                 num_of_req_to_remove = (int)((double)(waiting_req->currSize) * 0.3);
-                for(int i = 0 ; i < num_of_req_to_remove ; i++)
+                int i;
+                for(i = 0 ; i < num_of_req_to_remove ; i++)
                 {
                     empty = 0;
-                    fd = dequeue_index(waiting_req, abs(rand())%(waiting_req->currSize));
-                    Close(fd);
+                    r = (Request)dequeue_index(waiting_req, abs(rand())%(waiting_req->currSize));
+                    Close(r->fd);
+                    free(r);
                 }
+                *totalSize = *totalSize -  num_of_req_to_remove;
                 if (empty)
                 {
                     Close(req->fd);
@@ -72,15 +76,18 @@ void AddRequest(Request req, Thread* pool, pthread_mutex_t* global_lock, pthread
                 }
                 break;
             case DH:
-                fd = dequeue(waiting_req);
+                r = (Request)dequeue(waiting_req);
                 //Todo: add case for when queue is empty
-                Close(fd);
+                Close(r->fd);
+                free(r);
+                *totalSize = *totalSize -1;
                 break;
             case INVALID:
                 break;
         }
     }
-    enqueue(waiting_req, &req->fd);
+    enqueue(waiting_req, req);
+    *totalSize = *totalSize + 1;
     pthread_cond_signal(global_cond);
     pthread_mutex_unlock(global_lock);
 }
@@ -113,12 +120,12 @@ void requestError(int fd, char *cause, char *errnum, char *shortmsg, char *longm
     Rio_writen(fd, buf, strlen(buf));
     printf("%s", buf);
 
-    sprintf(buf, "%sStat-Req-Arrival:: %lu.%06lu\r\n", getSec(request, ARRIVE), getMicroSec(request, ARRIVE));
-    sprintf(buf, "%sStat-Req-Dispatch:: %lu.%06lu\r\n", getSec(request, DISPATCH), getMicroSec(request, DISPATCH));
-    sprintf(buf, "%sStat-Thread-Id:: %d\r\n", thread->thread_id);
-    sprintf(buf, "%sStat-Thread-Count:: %d\r\n", thread->total_request_count);
-    sprintf(buf, "%sStat-Thread-Static:: %d\r\n", thread->static_request_count);
-    sprintf(buf, "%sStat-Thread-Dynamic:: %d\r\n\r\n", thread->dynamic_request_count);
+    sprintf(buf, "%sStat-Req-Arrival:: %lu.%06lu\r\n", buf, getSec(request, ARRIVE), getMicroSec(request, ARRIVE));
+    sprintf(buf, "%sStat-Req-Dispatch:: %lu.%06lu\r\n", buf, getSec(request, DISPATCH), getMicroSec(request, DISPATCH));
+    sprintf(buf, "%sStat-Thread-Id:: %d\r\n", buf, thread->thread_id);
+    sprintf(buf, "%sStat-Thread-Count:: %d\r\n", buf, thread->total_request_count);
+    sprintf(buf, "%sStat-Thread-Static:: %d\r\n", buf, thread->static_request_count);
+    sprintf(buf, "%sStat-Thread-Dynamic:: %d\r\n\r\n", buf, thread->dynamic_request_count);
 
     // Write out the content
     Rio_writen(fd, body, strlen(body));
@@ -135,10 +142,9 @@ void requestReadhdrs(rio_t *rp)
     char buf[MAXLINE];
 
     Rio_readlineb(rp, buf, MAXLINE);
-    while (strcmp(buf, "\r\n")) {
+    while (strcmp(buf, "\r\n") != 0) {
         Rio_readlineb(rp, buf, MAXLINE);
     }
-    return;
 }
 
 //
@@ -202,12 +208,12 @@ void requestServeDynamic(int fd, char *filename, char *cgiargs, Request request,
     sprintf(buf, "HTTP/1.0 200 OK\r\n");
     sprintf(buf, "%sServer: OS-HW3 Web Server\r\n", buf);
 
-    sprintf(buf, "%sStat-Req-Arrival:: %lu.%06lu\r\n", getSec(request, ARRIVE), getMicroSec(request, ARRIVE));
-    sprintf(buf, "%sStat-Req-Dispatch:: %lu.%06lu\r\n", getSec(request, DISPATCH), getMicroSec(request, DISPATCH));
-    sprintf(buf, "%sStat-Thread-Id:: %d\r\n", thread->thread_id);
-    sprintf(buf, "%sStat-Thread-Count:: %d\r\n", thread->total_request_count);
-    sprintf(buf, "%sStat-Thread-Static:: %d\r\n", thread->static_request_count);
-    sprintf(buf, "%sStat-Thread-Dynamic:: %d\r\n\r\n", thread->dynamic_request_count);
+    sprintf(buf, "%sStat-Req-Arrival:: %lu.%06lu\r\n", buf, getSec(request, ARRIVE), getMicroSec(request, ARRIVE));
+    sprintf(buf, "%sStat-Req-Dispatch:: %lu.%06lu\r\n", buf, getSec(request, DISPATCH), getMicroSec(request, DISPATCH));
+    sprintf(buf, "%sStat-Thread-Id:: %d\r\n", buf, thread->thread_id);
+    sprintf(buf, "%sStat-Thread-Count:: %d\r\n", buf, thread->total_request_count);
+    sprintf(buf, "%sStat-Thread-Static:: %d\r\n", buf, thread->static_request_count);
+    sprintf(buf, "%sStat-Thread-Dynamic:: %d\r\n\r\n", buf, thread->dynamic_request_count);
 
     Rio_writen(fd, buf, strlen(buf));
 
@@ -245,12 +251,12 @@ void requestServeStatic(int fd, char *filename, int filesize, Request request, T
     sprintf(buf, "%sContent-Length: %d\r\n", buf, filesize);
     sprintf(buf, "%sContent-Type: %s\r\n\r\n", buf, filetype);
 
-    sprintf(buf, "%sStat-Req-Arrival:: %lu.%06lu\r\n", getSec(request, ARRIVE), getMicroSec(request, ARRIVE));
-    sprintf(buf, "%sStat-Req-Dispatch:: %lu.%06lu\r\n", getSec(request, DISPATCH), getMicroSec(request, DISPATCH));
-    sprintf(buf, "%sStat-Thread-Id:: %d\r\n", thread->thread_id);
-    sprintf(buf, "%sStat-Thread-Count:: %d\r\n", thread->total_request_count);
-    sprintf(buf, "%sStat-Thread-Static:: %d\r\n", thread->static_request_count);
-    sprintf(buf, "%sStat-Thread-Dynamic:: %d\r\n\r\n", thread->dynamic_request_count);
+    sprintf(buf, "%sStat-Req-Arrival:: %lu.%06lu\r\n", buf, getSec(request, ARRIVE), getMicroSec(request, ARRIVE));
+    sprintf(buf, "%sStat-Req-Dispatch:: %lu.%06lu\r\n", buf, getSec(request, DISPATCH), getMicroSec(request, DISPATCH));
+    sprintf(buf, "%sStat-Thread-Id:: %d\r\n", buf, thread->thread_id);
+    sprintf(buf, "%sStat-Thread-Count:: %d\r\n", buf, thread->total_request_count);
+    sprintf(buf, "%sStat-Thread-Static:: %d\r\n", buf, thread->static_request_count);
+    sprintf(buf, "%sStat-Thread-Dynamic:: %d\r\n\r\n", buf, thread->dynamic_request_count);
 
     Rio_writen(fd, buf, strlen(buf));
 
@@ -275,7 +281,7 @@ void requestHandle(int fd, Request request, Thread thread)
 
     printf("%s %s %s\n", method, uri, version);
 
-    if (strcasecmp(method, "GET")) {
+    if (strcasecmp(method, "GET") != 0) {
         requestError(fd, method, "501", "Not Implemented", "OS-HW3 Server does not implement this method", request, thread);
         return;
     }

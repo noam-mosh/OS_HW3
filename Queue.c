@@ -1,14 +1,14 @@
 #include "Queue.h"
 
 
-Queue createQueue(size_t maxSize, size_t totalSize, pthread_mutex_t* lock, pthread_cond_t* cond_enc, pthread_cond_t* cond_dec) {
-    Queue q = NULL;
+Queue createQueue(size_t maxSize, pthread_mutex_t* lock, pthread_cond_t* cond_enc, pthread_cond_t* cond_dec) {
+    Queue q;
     q = (Queue)malloc(sizeof(*q));
-    if (!q)
-        return NULL;
+    if (q==NULL)
+        return q;
     q->list = createList();
+    q->currSize = 0;
     q->maxSize = maxSize;
-    q->totalSize = totalSize;
     q->lock = lock;
     q->enqueue_allowed = cond_enc;
     q->dequeue_allowed = cond_dec;
@@ -26,11 +26,11 @@ void destroyQueue(Queue q){
     free(q);
 }
 
-errorType enqueue(Queue q, void* data) {
+void enqueue(Queue q, void* data) {
     if (!q || !data)
-        return NULL_ARGUMENT;
+        return;
     pthread_mutex_lock(q->lock);
-    while (q->currSize == q->totalSize) {
+    while (q->currSize >= q->maxSize) {
         pthread_cond_wait(q->enqueue_allowed, q->lock);
     }
     pushNode(q->list, data);
@@ -39,25 +39,26 @@ errorType enqueue(Queue q, void* data) {
     pthread_mutex_unlock(q->lock);
 }
 
-errorType dequeue(Queue q) {
+void* dequeue(Queue q) {
     //Todo: add case for when queue is empty
     if (!q)
-        return NULL_ARGUMENT;
+        return NULL;
     pthread_mutex_lock(q->lock);
     while (q->currSize == 0) {
         pthread_cond_wait(q->dequeue_allowed, q->lock);
     }
-    popNode(q->list);
+    node delete = popNode(q->list);
     q->currSize--;
     pthread_cond_signal(q->enqueue_allowed);
     pthread_mutex_unlock(q->lock);
+    return delete->data;
 }
 
-errorType removeQueue(Queue q, void* data)
+void removeQueue(Queue q, void* data)
 {
     //Todo: add case for when queue is empty
     if (!q)
-        return NULL_ARGUMENT;
+        return;
     pthread_mutex_lock(q->lock);
     while (q->currSize == 0) {
         pthread_cond_wait(q->dequeue_allowed, q->lock);
@@ -72,7 +73,7 @@ void* dequeue_index(Queue q, int index)
 {
     //Todo: add case for when queue is empty
     if (!q)
-        return NULL_ARGUMENT;
+        return (void *) NULL_ARGUMENT;
     pthread_mutex_lock(q->lock);
     while (q->currSize == 0) {
         pthread_cond_wait(q->dequeue_allowed, q->lock);
@@ -82,14 +83,4 @@ void* dequeue_index(Queue q, int index)
     pthread_cond_signal(q->enqueue_allowed);
     pthread_mutex_unlock(q->lock);
     return ret->data;
-}
-
-size_t getQueueSize(Queue q)
-{
-    return q->currSize;
-}
-
-size_t getQueueTotalSize(Queue q)
-{
-    return q->totalSize;
 }

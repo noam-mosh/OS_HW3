@@ -24,8 +24,7 @@ void pushNode(List list, void* data);
 node popNode(List list);
 void destroyList(List list);
 node removeNodeByIndex(List list, int index);
-node removeNodeByData(List list, void* data);
-
+void removeNodeByData(List list, void* data);
 
 
 #endif //LIST_C_LIST_H

@@ -39,27 +39,21 @@ void getargs(int* port, int* threads_num, int* queue_size, Policy* schedalg, int
         *schedalg = INVALID;
 }
 
-//void worker(Thread thread)
-//{
-//    while (1)
-//    {
-//        Request r = (Request) dequeue(thread.waiting_q);
-//        enqueue(thread.handled_q, r);
-//        requestHandle(r->fd);
-//        removeQueue(thread.handled_q, r);
-//        Close(r->fd);
-//        free(r);
-//    }
-//}
 
 void* start_routine(void* thread) {
-    Thread tmp = (Thread)thread;
+    Thread t;
+    t = (Thread)thread;
     while (1)
     {
-        Request r = (Request) dequeue(tmp->waiting_q);
-        enqueue(tmp->handled_q, r);
-        requestHandle(r->fd, r, tmp);
-        removeQueue(tmp->handled_q, r);
+        Request r = (Request) dequeue(t->waiting_q);
+        enqueue(t->handled_q, r);
+        requestHandle(r->fd, r, t);
+        removeQueue(t->handled_q, r);
+
+        pthread_mutex_lock(t->global_lock);
+        (*(t->totalSize))--;
+        pthread_cond_signal(t->global_cond);
+        pthread_mutex_unlock(t->global_lock);
         Close(r->fd);
         free(r);
     }
@@ -67,7 +61,7 @@ void* start_routine(void* thread) {
 
 int main(int argc, char *argv[])
 {
-    int listenfd, connfd, port, threads_num, queue_size, clientlen;
+    int listenfd, connfd, port, threads_num, queue_size, clientlen, totalSize=0;
     struct sockaddr_in clientaddr;
     Policy schedalg;
     getargs(&port, &threads_num, &queue_size, &schedalg, argc, argv);
@@ -82,16 +76,21 @@ int main(int argc, char *argv[])
     pthread_cond_t handled_cond_dec = PTHREAD_COND_INITIALIZER;
     pthread_cond_t global_cond = PTHREAD_COND_INITIALIZER;
 
-    Queue handled_q = createQueue(threads_num, 0, &handled_lock, &handled_cond_enc, &handled_cond_dec);
-    Queue waiting_q = createQueue(queue_size, 0, &waiting_lock, &waiting_cond_enc, &waiting_cond_dec);
+    pthread_mutex_init(&global_lock, NULL);
+
+
+    Queue handled_q = createQueue(threads_num, &handled_lock, &handled_cond_enc, &handled_cond_dec);
+    Queue waiting_q = createQueue(queue_size, &waiting_lock, &waiting_cond_enc, &waiting_cond_dec);
     // 
     // HW3: Create some threads...
     //
-    Thread* threads_pull = (Thread*) malloc(threads_num * sizeof(Thread));
-    if (!threads_pull)
-        return NULL;
-    for (int i = 0; i < threads_num; ++i) {
-        threads_pull[i] = createThread(i, threads_pull[i]->thread, handled_q, waiting_q, start_routine, threads_pull[i]->thread);
+    Thread* threads_pool = (Thread*) malloc(threads_num * sizeof(Thread));
+//    if (!threads_pull)
+//        return NULL;
+    unsigned int i;
+    for (i = 0; i < threads_num; ++i) {
+        threads_pool[i] = createThread(i, handled_q, waiting_q, &global_lock, &global_cond, &totalSize);
+        while(activateTread(threads_pool[i], start_routine));
     }
 
     listenfd = Open_listenfd(port);
@@ -107,12 +106,12 @@ int main(int argc, char *argv[])
         struct timeval arrival;
         gettimeofday(&arrival, NULL);
         Request r = CreateRequest(connfd, arrival, handled_q, waiting_q, schedalg);
-        AddRequest(r, threads_pull, &global_lock, &global_cond);
+        AddRequest(r, &global_lock, &global_cond, &totalSize);
 //        requestHandle(connfd);
 
 //        Close(connfd);
     }
-    destroyQueue(handled_q);
-    destroyQueue(waiting_q);
+//    destroyQueue(handled_q);
+//    destroyQueue(waiting_q);
 }
 
