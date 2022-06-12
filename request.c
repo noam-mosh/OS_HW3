@@ -41,7 +41,7 @@ time_t getMicroSec(Request request, int time_type)
 
 void AddRequest(Request req, pthread_mutex_t* global_lock, pthread_cond_t* global_cond, int* totalSize)
 {
-    int num_of_req_to_remove, empty = 1;
+    double num_of_req_to_remove;
     Request r;
     Queue handled_req = req->handled_q;
     Queue waiting_req = req->waiting_q;
@@ -58,22 +58,16 @@ void AddRequest(Request req, pthread_mutex_t* global_lock, pthread_cond_t* globa
                 pthread_mutex_unlock(global_lock);
                 return;
             case RANDOM:
-                num_of_req_to_remove = (int)((double)(waiting_req->currSize) * 0.3);
+                num_of_req_to_remove = (double)(*totalSize) * 0.3;
+                num_of_req_to_remove = (double)(waiting_req->currSize) < num_of_req_to_remove ? (double)(waiting_req->currSize) : num_of_req_to_remove;
                 int i;
-                for(i = 0 ; i < num_of_req_to_remove ; i++)
+                for(i = 0 ; i < ceil(num_of_req_to_remove) ; i++)
                 {
-                    empty = 0;
-                    r = (Request)dequeue_index(waiting_req, abs(rand())%(waiting_req->currSize));
+                    r = (Request)dequeue_index(waiting_req, abs(rand())%(*totalSize));
                     Close(r->fd);
                     free(r);
                 }
-                *totalSize = *totalSize -  num_of_req_to_remove;
-                if (empty)
-                {
-                    Close(req->fd);
-                    pthread_mutex_unlock(global_lock);
-                    return;
-                }
+                *totalSize = *totalSize - (int)ceil(num_of_req_to_remove);
                 break;
             case DH:
                 r = (Request)dequeue(waiting_req);
