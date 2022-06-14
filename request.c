@@ -55,23 +55,49 @@ void AddRequest(Request req, pthread_mutex_t* global_lock, pthread_cond_t* globa
                 break;
             case DT:
                 Close(req->fd);
+                free(req);
                 pthread_mutex_unlock(global_lock);
                 return;
             case RANDOM:
-                num_of_req_to_remove = (double)(*totalSize) * 0.3;
-                num_of_req_to_remove = (double)(waiting_req->currSize) < num_of_req_to_remove ? (double)(waiting_req->currSize) : num_of_req_to_remove;
-                int i;
-                for(i = 0 ; i < my_ceil(num_of_req_to_remove) ; i++)
+                //Todo: check case of empty queue
+                if (waiting_req->currSize == 0)
                 {
-                    r = (Request)dequeue_index(waiting_req, abs(rand())%(*totalSize));
+                    Close(req->fd);
+                    free(req);
+                    pthread_mutex_unlock(global_lock);
+                    return;
+                }
+                num_of_req_to_remove = my_ceil((double)(waiting_req->currSize) * 0.3);
+                int i;
+                for(i = 0 ; i < num_of_req_to_remove ; i++)
+                {
+                    r = (Request)dequeue_index(waiting_req, abs(rand())%(waiting_req->currSize));
                     Close(r->fd);
                     free(r);
                 }
-                *totalSize = *totalSize - (int)my_ceil(num_of_req_to_remove);
+                *totalSize = *totalSize - (int)num_of_req_to_remove;
                 break;
+//                num_of_req_to_remove = (double)(*totalSize) * 0.3;
+//                num_of_req_to_remove = (double)(waiting_req->currSize) < num_of_req_to_remove ? (double)(waiting_req->currSize) : num_of_req_to_remove;
+//                int i;
+//                for(i = 0 ; i < my_ceil(num_of_req_to_remove) ; i++)
+//                {
+//                    r = (Request)dequeue_index(waiting_req, abs(rand())%(*totalSize));  //should be %(waiting_req->currSize)?
+//                    Close(r->fd);
+//                    free(r);
+//                }
+//                *totalSize = *totalSize - (int)my_ceil(num_of_req_to_remove);
+//                break;
             case DH:
+                //Todo: check case of empty queue
+                if (waiting_req->currSize == 0)
+                {
+                    Close(req->fd);
+                    free(req);
+                    pthread_mutex_unlock(global_lock);
+                    return;
+                }
                 r = (Request)dequeue(waiting_req);
-                //Todo: add case for when queue is empty
                 Close(r->fd);
                 free(r);
                 *totalSize = *totalSize -1;
@@ -110,16 +136,15 @@ void requestError(int fd, char *cause, char *errnum, char *shortmsg, char *longm
     Rio_writen(fd, buf, strlen(buf));
     printf("%s", buf);
 
-    sprintf(buf, "Content-Length: %lu\r\n\r\n", strlen(body));
-    Rio_writen(fd, buf, strlen(buf));
-    printf("%s", buf);
-
+    sprintf(buf, "Content-Length: %lu\r\n", strlen(body));
     sprintf(buf, "%sStat-Req-Arrival:: %lu.%06lu\r\n", buf, getSec(request, ARRIVE), getMicroSec(request, ARRIVE));
     sprintf(buf, "%sStat-Req-Dispatch:: %lu.%06lu\r\n", buf, getSec(request, DISPATCH), getMicroSec(request, DISPATCH));
     sprintf(buf, "%sStat-Thread-Id:: %d\r\n", buf, thread->thread_id);
     sprintf(buf, "%sStat-Thread-Count:: %d\r\n", buf, thread->total_request_count);
     sprintf(buf, "%sStat-Thread-Static:: %d\r\n", buf, thread->static_request_count);
     sprintf(buf, "%sStat-Thread-Dynamic:: %d\r\n\r\n", buf, thread->dynamic_request_count);
+    Rio_writen(fd, buf, strlen(buf));
+    printf("%s", buf);
 
     // Write out the content
     Rio_writen(fd, body, strlen(body));
@@ -243,7 +268,7 @@ void requestServeStatic(int fd, char *filename, int filesize, Request request, T
     sprintf(buf, "HTTP/1.0 200 OK\r\n");
     sprintf(buf, "%sServer: OS-HW3 Web Server\r\n", buf);
     sprintf(buf, "%sContent-Length: %d\r\n", buf, filesize);
-    sprintf(buf, "%sContent-Type: %s\r\n\r\n", buf, filetype);
+    sprintf(buf, "%sContent-Type: %s\r\n", buf, filetype);
 
     sprintf(buf, "%sStat-Req-Arrival:: %lu.%06lu\r\n", buf, getSec(request, ARRIVE), getMicroSec(request, ARRIVE));
     sprintf(buf, "%sStat-Req-Dispatch:: %lu.%06lu\r\n", buf, getSec(request, DISPATCH), getMicroSec(request, DISPATCH));
