@@ -1,5 +1,6 @@
 #ifndef __REQUEST_H__
 #include "Thread.h"
+#include "segel.h"
 #include "Queue.h"
 
 typedef enum {BLOCK,
@@ -25,6 +26,6 @@ void AddRequest(Request req, pthread_mutex_t* global_lock, pthread_cond_t* globa
 void requestHandle(int fd, Request request, Thread thread);
 
 void updateDispatchTime(Request request);
-time_t getSec(Request request, int time_type);
-time_t getMicroSec(Request request, int time_type);
+//time_t getSec(Request request, int time_type);
+//time_t getMicroSec(Request request, int time_type);
 #endif

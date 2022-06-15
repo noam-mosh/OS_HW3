@@ -45,17 +45,25 @@ void* start_routine(void* thread) {
     t = (Thread)thread;
     while (1)
     {
+        pthread_mutex_lock(t->global_lock);
         Request r = (Request) dequeue(t->waiting_q);
         enqueue(t->handled_q, r);
+        t->curr_request = r;
+        pthread_mutex_unlock(t->global_lock);
         requestHandle(r->fd, r, t);
-        removeQueue(t->handled_q, r);
+
+
 
         pthread_mutex_lock(t->global_lock);
+        removeQueue(t->handled_q, r);
+        Close(r->fd);
+        t->curr_request = NULL;
+        free(r);
         (*(t->totalSize))--;
         pthread_cond_signal(t->global_cond);
         pthread_mutex_unlock(t->global_lock);
-        Close(r->fd);
-        free(r);
+
+
     }
 }
 

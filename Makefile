@@ -8,10 +8,9 @@ TARGET = server
 CC = gcc
 CFLAGS = -g -Wall
 
-LIBS = -lpthread
+LIBS = -lpthread -lm
 
 .SUFFIXES: .c .o
-
 all: server client output.cgi
 	-mkdir -p public
 	-cp output.cgi favicon.ico home.html public

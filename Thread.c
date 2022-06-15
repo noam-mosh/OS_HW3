@@ -8,6 +8,7 @@ Thread createThread(unsigned int thread_id, Queue handled_q, Queue waiting_q, pt
     t->handled_q = handled_q;
     t->waiting_q = waiting_q;
     t->thread_id = thread_id;
+    t->curr_request = NULL;
     t->static_request_count = 0;
     t->dynamic_request_count = 0;
     t->total_request_count = 0;

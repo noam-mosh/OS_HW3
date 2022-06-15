@@ -1,8 +1,7 @@
 //
 // request.c: Does the bulk of the work for the web server.
-// 
+//
 
-#include "segel.h"
 #include "request.h"
 
 Request CreateRequest(int fd, struct timeval arrive_time, Queue handled_q, Queue waiting_q, Policy policy)
@@ -39,9 +38,72 @@ time_t getMicroSec(Request request, int time_type)
     return request->dispatch_time.tv_usec;
 }
 
+//int removeRandomElement(Queue q)
+//{
+//    srand(time(NULL));
+//    int index = 0, res = -1;
+//    struct Node *iterator;
+//    if (q->currSize == 0)
+//    {
+//        return res;
+//    }
+//    else if (q->currSize == 1)
+//    {
+//        if (q->head->value != NULL)
+//        {
+//            res = q->head->value->connfd;
+//            free(q->head->value);
+//        }
+//        free(q->head);
+//        q->head = NULL;
+//        q->tail = NULL;
+//        q->size--;
+//        return res;
+//    }
+//    else
+//    {
+//        index = rand() % (q->currSize - 1);
+//    }
+//
+//    if (index == 0)
+//    {
+//        if (q->currSize->value != NULL)
+//        {
+//            res = q->head->value->connfd;
+//            free(q->head->value);
+//        }
+//        iterator = q->head;
+//        q->head = q->head->next;
+//        free(iterator);
+//        q->currSize--;
+//        return res;
+//    }
+//
+//    iterator = q->head;
+//    for (int i = 0; i < index - 1; i++)
+//    {
+//        iterator = iterator->next;
+//    }
+//
+//    struct Node *node_to_delete = iterator->next;
+//    if (node_to_delete != NULL)
+//    {
+//        if (node_to_delete->value != NULL)
+//        {
+//            res = node_to_delete->value->connfd;
+//            free(node_to_delete->value);
+//        }
+//
+//        iterator->next = iterator->next->next;
+//        free(node_to_delete);
+//        q->size--;
+//    }
+//
+//    return res;
+//}
+
 void AddRequest(Request req, pthread_mutex_t* global_lock, pthread_cond_t* global_cond, int* totalSize)
 {
-    double num_of_req_to_remove;
     Request r;
     Queue handled_req = req->handled_q;
     Queue waiting_req = req->waiting_q;
@@ -67,15 +129,17 @@ void AddRequest(Request req, pthread_mutex_t* global_lock, pthread_cond_t* globa
                     pthread_mutex_unlock(global_lock);
                     return;
                 }
-                num_of_req_to_remove = my_ceil((double)(waiting_req->currSize) * 0.3);
+                double tmp = (double)(waiting_req->currSize * 0.3);
+                int num_of_req_to_remove = ceil(tmp);
                 int i;
                 for(i = 0 ; i < num_of_req_to_remove ; i++)
                 {
-                    r = (Request)dequeue_index(waiting_req, abs(rand())%(waiting_req->currSize));
+                    r = (Request)dequeue_index(waiting_req, rand() % (waiting_req->currSize - 1));
                     Close(r->fd);
                     free(r);
+                    *totalSize = *totalSize - 1;
                 }
-                *totalSize = *totalSize - (int)num_of_req_to_remove;
+//                *totalSize = *totalSize - (int)num_of_req_to_remove;
                 break;
 //                num_of_req_to_remove = (double)(*totalSize) * 0.3;
 //                num_of_req_to_remove = (double)(waiting_req->currSize) < num_of_req_to_remove ? (double)(waiting_req->currSize) : num_of_req_to_remove;
@@ -99,8 +163,8 @@ void AddRequest(Request req, pthread_mutex_t* global_lock, pthread_cond_t* globa
                 }
                 r = (Request)dequeue(waiting_req);
                 Close(r->fd);
-                free(r);
                 *totalSize = *totalSize -1;
+                free(r);
                 break;
             case INVALID:
                 break;
@@ -137,10 +201,10 @@ void requestError(int fd, char *cause, char *errnum, char *shortmsg, char *longm
     printf("%s", buf);
 
     sprintf(buf, "Content-Length: %lu\r\n", strlen(body));
-    sprintf(buf, "%sStat-Req-Arrival:: %lu.%06lu\r\n", buf, getSec(request, ARRIVE), getMicroSec(request, ARRIVE));
-    sprintf(buf, "%sStat-Req-Dispatch:: %lu.%06lu\r\n", buf, getSec(request, DISPATCH), getMicroSec(request, DISPATCH));
+    sprintf(buf, "%sStat-Req-Arrival:: %lu.%06lu\r\n", buf, thread->curr_request->arrive_time.tv_sec, thread->curr_request->arrive_time.tv_usec);
+    sprintf(buf, "%sStat-Req-Dispatch:: %lu.%06lu\r\n", buf, thread->curr_request->dispatch_time.tv_sec, thread->curr_request->dispatch_time.tv_usec);
     sprintf(buf, "%sStat-Thread-Id:: %d\r\n", buf, thread->thread_id);
-    sprintf(buf, "%sStat-Thread-Count:: %d\r\n", buf, thread->total_request_count);
+    sprintf(buf, "%sStat-Thread-Count:: %d\r\n", buf, ++thread->total_request_count);
     sprintf(buf, "%sStat-Thread-Static:: %d\r\n", buf, thread->static_request_count);
     sprintf(buf, "%sStat-Thread-Dynamic:: %d\r\n\r\n", buf, thread->dynamic_request_count);
     Rio_writen(fd, buf, strlen(buf));

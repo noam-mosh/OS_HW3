@@ -15,8 +15,8 @@ typedef struct Queue_t{
     pthread_mutex_t* lock;
     pthread_cond_t* enqueue_allowed;
     pthread_cond_t* dequeue_allowed;
-    size_t currSize; // The current size
-    size_t maxSize; // The maximal size
+    int currSize; // The current size
+    int maxSize; // The maximal size
 } *Queue;
 
 Queue createQueue(size_t maxSize, pthread_mutex_t* lock, pthread_cond_t* cond_enc, pthread_cond_t* cond_dec);
