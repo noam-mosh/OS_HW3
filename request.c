@@ -117,7 +117,7 @@ void requestError(int fd, char *cause, char *errnum, char *shortmsg, char *longm
 {
     char buf[MAXLINE], body[MAXBUF];
 
-    updateDispatchTime(request);
+    //updateDispatchTime(request);
     increaseTotalCount(thread);
 
     // Create the body of the error message
@@ -220,8 +220,7 @@ void requestServeDynamic(int fd, char *filename, char *cgiargs, Request request,
 {
     char buf[MAXLINE], *emptylist[] = {NULL};
 
-    updateDispatchTime(request);
-    increaseDynamicCount(thread);
+    //updateDispatchTime(request);
     // The server does only a little bit of the header.
     // The CGI script has to finish writing out the header.
     sprintf(buf, "HTTP/1.0 200 OK\r\n");
@@ -232,7 +231,7 @@ void requestServeDynamic(int fd, char *filename, char *cgiargs, Request request,
     sprintf(buf, "%sStat-Thread-Id:: %d\r\n", buf, thread->thread_id);
     sprintf(buf, "%sStat-Thread-Count:: %d\r\n", buf, thread->total_request_count);
     sprintf(buf, "%sStat-Thread-Static:: %d\r\n", buf, thread->static_request_count);
-    sprintf(buf, "%sStat-Thread-Dynamic:: %d\r\n\r\n", buf, thread->dynamic_request_count);
+    sprintf(buf, "%sStat-Thread-Dynamic:: %d\r\n", buf, thread->dynamic_request_count);
 
     Rio_writen(fd, buf, strlen(buf));
 
@@ -252,8 +251,7 @@ void requestServeStatic(int fd, char *filename, int filesize, Request request, T
     int srcfd;
     char *srcp, filetype[MAXLINE], buf[MAXBUF];
 
-    updateDispatchTime(request);
-    increaseStaticCount(thread);
+    //updateDispatchTime(request);
 
     requestGetFiletype(filename, filetype);
 
@@ -288,6 +286,7 @@ void requestServeStatic(int fd, char *filename, int filesize, Request request, T
 // handle a request
 void requestHandle(int fd, Request request, Thread thread)
 {
+    updateDispatchTime(request);
     int is_static;
     struct stat sbuf;
     char buf[MAXLINE], method[MAXLINE], uri[MAXLINE], version[MAXLINE];
@@ -317,12 +316,14 @@ void requestHandle(int fd, Request request, Thread thread)
             requestError(fd, filename, "403", "Forbidden", "OS-HW3 Server could not read this file", request, thread);
             return;
         }
+        increaseStaticCount(thread);
         requestServeStatic(fd, filename, sbuf.st_size, request, thread);
     } else {
         if (!(S_ISREG(sbuf.st_mode)) || !(S_IXUSR & sbuf.st_mode)) {
             requestError(fd, filename, "403", "Forbidden", "OS-HW3 Server could not run this CGI program", request, thread);
             return;
         }
+        increaseDynamicCount(thread);
         requestServeDynamic(fd, filename, cgiargs, request, thread);
     }
 }
