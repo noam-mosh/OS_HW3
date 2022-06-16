@@ -56,7 +56,7 @@ extern char **environ; /* defined by libc */
 #define MAXBUF   8192  /* max I/O buffer size */
 #define LISTENQ  1024  /* second argument to listen() */
 
-int my_ceil(double num);
+//int my_ceil(double num);
 
 /* Our own error-handling functions */
 void unix_error(char *msg);

@@ -2,15 +2,18 @@
 // request.c: Does the bulk of the work for the web server.
 //
 
+#include "segel.h"
 #include "request.h"
 
-Request CreateRequest(int fd, struct timeval arrive_time, Queue handled_q, Queue waiting_q, Policy policy)
+Request CreateRequest(int fd, Queue handled_q, Queue waiting_q, Policy policy)
 {
     Request req = (Request)malloc(sizeof(*req));
     if (!req)
         return NULL;
     req->fd = fd;
-    req->arrive_time = arrive_time;
+    gettimeofday(&req->arrive_time, NULL);
+    gettimeofday(&req->dispatch_time, NULL);
+//    req->arrive_time = arrival;
     //req->dispatch_time = NULL;  //-NO INITIALIZATION !
     req->handled_q = handled_q;
     req->waiting_q = waiting_q;
@@ -38,81 +41,17 @@ time_t getMicroSec(Request request, int time_type)
     return request->dispatch_time.tv_usec;
 }
 
-//int removeRandomElement(Queue q)
-//{
-//    srand(time(NULL));
-//    int index = 0, res = -1;
-//    struct Node *iterator;
-//    if (q->currSize == 0)
-//    {
-//        return res;
-//    }
-//    else if (q->currSize == 1)
-//    {
-//        if (q->head->value != NULL)
-//        {
-//            res = q->head->value->connfd;
-//            free(q->head->value);
-//        }
-//        free(q->head);
-//        q->head = NULL;
-//        q->tail = NULL;
-//        q->size--;
-//        return res;
-//    }
-//    else
-//    {
-//        index = rand() % (q->currSize - 1);
-//    }
-//
-//    if (index == 0)
-//    {
-//        if (q->currSize->value != NULL)
-//        {
-//            res = q->head->value->connfd;
-//            free(q->head->value);
-//        }
-//        iterator = q->head;
-//        q->head = q->head->next;
-//        free(iterator);
-//        q->currSize--;
-//        return res;
-//    }
-//
-//    iterator = q->head;
-//    for (int i = 0; i < index - 1; i++)
-//    {
-//        iterator = iterator->next;
-//    }
-//
-//    struct Node *node_to_delete = iterator->next;
-//    if (node_to_delete != NULL)
-//    {
-//        if (node_to_delete->value != NULL)
-//        {
-//            res = node_to_delete->value->connfd;
-//            free(node_to_delete->value);
-//        }
-//
-//        iterator->next = iterator->next->next;
-//        free(node_to_delete);
-//        q->size--;
-//    }
-//
-//    return res;
-//}
-
 void AddRequest(Request req, pthread_mutex_t* global_lock, pthread_cond_t* global_cond, int* totalSize)
 {
     Request r;
-    Queue handled_req = req->handled_q;
+//    Queue handled_req = req->handled_q;
     Queue waiting_req = req->waiting_q;
     pthread_mutex_lock(global_lock);
     if (*totalSize >= waiting_req->maxSize)
     {
         switch (req->policy){
             case BLOCK:
-                while (handled_req->currSize + waiting_req->currSize >= waiting_req->maxSize)
+                while (*totalSize >= waiting_req->maxSize)
                     pthread_cond_wait(global_cond, global_lock);
                 break;
             case DT:
@@ -129,29 +68,39 @@ void AddRequest(Request req, pthread_mutex_t* global_lock, pthread_cond_t* globa
                     pthread_mutex_unlock(global_lock);
                     return;
                 }
-                double tmp = (double)(waiting_req->currSize * 0.3);
+                double tmp = (double)(waiting_req->currSize) * 0.3;
                 int num_of_req_to_remove = ceil(tmp);
-                int i;
-                for(i = 0 ; i < num_of_req_to_remove ; i++)
+//                printf("before rand, queue size%d\n", waiting_req->currSize);
+//                queue_print(waiting_req);
+//                int num_of_req_to_remove = my_ceil(tmp);
+                for(int i = 0 ; i < num_of_req_to_remove ; i++)
                 {
-                    r = (Request)dequeue_index(waiting_req, rand() % (waiting_req->currSize - 1));
-                    Close(r->fd);
-                    free(r);
-                    *totalSize = *totalSize - 1;
+                    if (waiting_req->currSize == 1)
+                    {
+                        r = (Request)waiting_req->list->head->data;
+                        if (r != NULL)
+                        {
+                            Close(r->fd);
+                            free(r);
+                        }
+                        free(waiting_req->list->head);
+                        waiting_req->list->head = NULL;
+                        waiting_req->list->tail = NULL;
+                        waiting_req->currSize--;
+                    }
+                    else{
+                        int index_to_remove = rand() % (waiting_req->currSize - 1);
+                        r = (Request)dequeue_index(waiting_req, index_to_remove);
+                        if (r->fd != -1)
+                        {
+                            Close(r->fd);
+//                        *totalSize = *totalSize - 1;
+                            free(r);
+                        }
+                    }
                 }
-//                *totalSize = *totalSize - (int)num_of_req_to_remove;
+                *totalSize = *totalSize - (int)num_of_req_to_remove;
                 break;
-//                num_of_req_to_remove = (double)(*totalSize) * 0.3;
-//                num_of_req_to_remove = (double)(waiting_req->currSize) < num_of_req_to_remove ? (double)(waiting_req->currSize) : num_of_req_to_remove;
-//                int i;
-//                for(i = 0 ; i < my_ceil(num_of_req_to_remove) ; i++)
-//                {
-//                    r = (Request)dequeue_index(waiting_req, abs(rand())%(*totalSize));  //should be %(waiting_req->currSize)?
-//                    Close(r->fd);
-//                    free(r);
-//                }
-//                *totalSize = *totalSize - (int)my_ceil(num_of_req_to_remove);
-//                break;
             case DH:
                 //Todo: check case of empty queue
                 if (waiting_req->currSize == 0)
@@ -163,8 +112,8 @@ void AddRequest(Request req, pthread_mutex_t* global_lock, pthread_cond_t* globa
                 }
                 r = (Request)dequeue(waiting_req);
                 Close(r->fd);
-                *totalSize = *totalSize -1;
                 free(r);
+                *totalSize = *totalSize -1;
                 break;
             case INVALID:
                 break;
@@ -201,10 +150,12 @@ void requestError(int fd, char *cause, char *errnum, char *shortmsg, char *longm
     printf("%s", buf);
 
     sprintf(buf, "Content-Length: %lu\r\n", strlen(body));
-    sprintf(buf, "%sStat-Req-Arrival:: %lu.%06lu\r\n", buf, thread->curr_request->arrive_time.tv_sec, thread->curr_request->arrive_time.tv_usec);
-    sprintf(buf, "%sStat-Req-Dispatch:: %lu.%06lu\r\n", buf, thread->curr_request->dispatch_time.tv_sec, thread->curr_request->dispatch_time.tv_usec);
+//    sprintf(buf, "%sStat-Req-Arrival:: %lu.%06lu\r\n", buf, thread->curr_request->arrival.tv_sec, thread->curr_request->arrival.tv_usec);
+//    sprintf(buf, "%sStat-Req-Dispatch:: %lu.%06lu\r\n", buf, thread->curr_request->dispatched.tv_sec, thread->curr_request->dispatched.tv_usec);
+    sprintf(buf, "%sStat-Req-Arrival:: %lu.%06lu\r\n", buf, getSec(request, ARRIVE), getMicroSec(request, ARRIVE));
+    sprintf(buf, "%sStat-Req-Dispatch:: %lu.%06lu\r\n", buf, getSec(request, DISPATCH), getMicroSec(request, DISPATCH));
     sprintf(buf, "%sStat-Thread-Id:: %d\r\n", buf, thread->thread_id);
-    sprintf(buf, "%sStat-Thread-Count:: %d\r\n", buf, ++thread->total_request_count);
+    sprintf(buf, "%sStat-Thread-Count:: %d\r\n", buf, thread->total_request_count);
     sprintf(buf, "%sStat-Thread-Static:: %d\r\n", buf, thread->static_request_count);
     sprintf(buf, "%sStat-Thread-Dynamic:: %d\r\n\r\n", buf, thread->dynamic_request_count);
     Rio_writen(fd, buf, strlen(buf));
@@ -299,14 +250,15 @@ void requestServeDynamic(int fd, char *filename, char *cgiargs, Request request,
 
     Rio_writen(fd, buf, strlen(buf));
 
-    if (Fork() == 0) {
+    pid_t pid = Fork();
+    if (pid == 0) {
         /* Child process */
         Setenv("QUERY_STRING", cgiargs, 1);
         /* When the CGI process writes to stdout, it will instead go to the socket */
         Dup2(fd, STDOUT_FILENO);
         Execve(filename, emptylist, environ);
     }
-    Wait(NULL);
+    waitpid(pid, NULL, 0);
 }
 
 

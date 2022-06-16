@@ -5,6 +5,13 @@
  **************************/
 /* $begin errorfuns */
 /* $begin unixerror */
+//int my_ceil(double num) {
+//    int inum = (int)num;
+//    if (num == (double)inum) {
+//        return inum;
+//    }
+//    return inum + 1;
+//}
 
 void unix_error(char *msg) /* unix-style error */
 {

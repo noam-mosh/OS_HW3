@@ -45,25 +45,17 @@ void* start_routine(void* thread) {
     t = (Thread)thread;
     while (1)
     {
-        pthread_mutex_lock(t->global_lock);
         Request r = (Request) dequeue(t->waiting_q);
         enqueue(t->handled_q, r);
-        t->curr_request = r;
-        pthread_mutex_unlock(t->global_lock);
         requestHandle(r->fd, r, t);
-
-
+        removeQueue(t->handled_q, r);
 
         pthread_mutex_lock(t->global_lock);
-        removeQueue(t->handled_q, r);
-        Close(r->fd);
-        t->curr_request = NULL;
-        free(r);
         (*(t->totalSize))--;
         pthread_cond_signal(t->global_cond);
         pthread_mutex_unlock(t->global_lock);
-
-
+        Close(r->fd);
+        free(r);
     }
 }
 
@@ -89,7 +81,7 @@ int main(int argc, char *argv[])
 
     Queue handled_q = createQueue(threads_num, &handled_lock, &handled_cond_enc, &handled_cond_dec);
     Queue waiting_q = createQueue(queue_size, &waiting_lock, &waiting_cond_enc, &waiting_cond_dec);
-    // 
+    //
     // HW3: Create some threads...
     //
     Thread* threads_pool = (Thread*) malloc(threads_num * sizeof(Thread));
@@ -111,9 +103,9 @@ int main(int argc, char *argv[])
         // Save the relevant info in a buffer and have one of the worker threads
         // do the work.
         //
-        struct timeval arrival;
-        gettimeofday(&arrival, NULL);
-        Request r = CreateRequest(connfd, arrival, handled_q, waiting_q, schedalg);
+//        struct timeval arrival;
+//        gettimeofday(&arrival, NULL);
+        Request r = CreateRequest(connfd,  handled_q, waiting_q, schedalg);
         AddRequest(r, &global_lock, &global_cond, &totalSize);
 //        requestHandle(connfd);
 
@@ -122,4 +114,3 @@ int main(int argc, char *argv[])
 //    destroyQueue(handled_q);
 //    destroyQueue(waiting_q);
 }
-

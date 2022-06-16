@@ -84,3 +84,21 @@ void* dequeue_index(Queue q, int index)
     pthread_mutex_unlock(q->lock);
     return ret->data;
 }
+
+//void queue_print(Queue queue, void* info)
+//{
+//    if (queue->currSize == 0)
+//    {
+//        printf("Queue is empty\n");
+//        return;
+//    }
+//
+//    node temp = queue->list->head;
+//    while (temp)
+//    {
+//        printf("%d-> ", temp->data->info);
+//        temp = temp->next;
+//    }
+//    printf("\n");
+//}
+

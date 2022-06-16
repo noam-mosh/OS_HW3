@@ -1,5 +1,5 @@
 #include "List.h"
-#include <stdlib.h>
+#include "segel.h"
 
 
 List createList()
